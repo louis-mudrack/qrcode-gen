@@ -40,13 +40,40 @@ class QRCodeGenerator {
     download(filename) {
         const qrCanvas = this.containerElement.querySelector('canvas');
         if (qrCanvas) {
-            const image = qrCanvas
-                .toDataURL('image/png')
-                .replace('image/png', 'image/octet-stream');
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = image;
-            link.click();
+            const checkboxElements = document.querySelectorAll('.file-format-checkbox');
+            const zip = new JSZip();
+    
+            checkboxElements.forEach((checkboxElement) => {
+                if (checkboxElement.checked) {
+                    const fileType = checkboxElement.value;
+                    let imageType = 'image/png';
+                    let fileExtension = 'png';
+    
+                    if (fileType === 'pdf') {
+                        imageType = 'application/pdf';
+                        fileExtension = 'pdf';
+                    } else if (fileType === 'jpg') {
+                        imageType = 'image/jpeg';
+                        fileExtension = 'jpg';
+                    } else if (fileType === 'svg') {
+                        imageType = 'image/svg+xml';
+                        fileExtension = 'svg';
+                    }
+    
+                    const image = qrCanvas
+                        .toDataURL(imageType)
+                        .replace(imageType, 'image/octet-stream');
+                    const imageData = image.split(',')[1];
+                    zip.file(`qrcode.${fileExtension}`, imageData, { base64: true });
+                }
+            });
+    
+            zip.generateAsync({ type: 'blob' }).then((content) => {
+                const link = document.createElement('a');
+                link.download = `${filename}.zip`;
+                link.href = URL.createObjectURL(content);
+                link.click();
+            });
         }
-    }
+    }    
 }

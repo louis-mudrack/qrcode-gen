@@ -14,6 +14,23 @@
         <main>
             <div id="qrcode"></div>
             <div class="settings">
+                <label for="file-type">File Formats:</label>
+                <div>
+                    <input type="checkbox" id="png" class="file-format-checkbox" value="png" checked>
+                    <label for="png">PNG</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="pdf" class="file-format-checkbox" value="pdf">
+                    <label for="pdf">PDF</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="jpg" class="file-format-checkbox" value="jpg">
+                    <label for="jpg">JPG</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="svg" class="file-format-checkbox" value="svg">
+                    <label for="svg">SVG</label>
+                </div>
                 <div class="color">
                     <div class="left">
                         <label for="main">Main Color:</label>
@@ -49,6 +66,7 @@
             </div>
         </footer>
         <script src="js/library/qrcode.min.js"></script>
+        <script src="js/library/jszip.min.js"></script>
         <script src="js/qrcodegenerator.js"></script>
         <script src="js/script.js"></script>
     </body>
