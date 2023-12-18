@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const logoInput = document.getElementById('logo');
         const logo = logoInput.files[0];
         qrCodeGenerator.updateLogo(logo);
-        
+
         const mainColor = document.getElementById('main').value;
         const backgroundColor = document.getElementById('background').value;
         qrCodeGenerator.updateColors(mainColor, backgroundColor);
@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const width = document.getElementById('width').value;
         const height = document.getElementById('height').value;
         qrCodeGenerator.updateDimensions(width, height);
-
     });
 
     document.getElementById('download').addEventListener('click', function () {

@@ -26,10 +26,17 @@ class QRCodeGenerator {
             const logoImage = new Image();
             logoImage.src = URL.createObjectURL(this.logo);
             logoImage.onload = () => {
-                const logoSize = Math.min(this.standardWidth, this.standardHeight) * 0.2;
+                const logoSize =
+                    Math.min(this.standardWidth, this.standardHeight) * 0.2;
                 const logoX = (this.standardWidth - logoSize) / 2;
                 const logoY = (this.standardHeight - logoSize) / 2;
-                qrContext.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+                qrContext.drawImage(
+                    logoImage,
+                    logoX,
+                    logoY,
+                    logoSize,
+                    logoSize,
+                );
             };
         }
     }
@@ -60,15 +67,17 @@ class QRCodeGenerator {
     download(filename) {
         const qrCanvas = this.containerElement.querySelector('canvas');
         if (qrCanvas) {
-            const checkboxElements = document.querySelectorAll('.file-format-checkbox');
+            const checkboxElements = document.querySelectorAll(
+                '.file-format-checkbox',
+            );
             const zip = new JSZip();
-    
+
             checkboxElements.forEach((checkboxElement) => {
                 if (checkboxElement.checked) {
                     const fileType = checkboxElement.value;
                     let imageType = 'image/png';
                     let fileExtension = 'png';
-    
+
                     if (fileType === 'pdf') {
                         imageType = 'application/pdf';
                         fileExtension = 'pdf';
@@ -79,31 +88,46 @@ class QRCodeGenerator {
                         imageType = 'image/svg+xml';
                         fileExtension = 'svg';
                     }
-    
-                    const image = qrCanvas.toDataURL(imageType);
-                const imageData = image.split(',')[1];
-                zip.file(`qrcode.${fileExtension}`, imageData, { base64: true });
 
-                if (this.logo) {
-                    const logoImage = new Image();
-                    logoImage.src = URL.createObjectURL(this.logo);
-                    logoImage.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = qrCanvas.width;
-                        canvas.height = qrCanvas.height;
-                        const context = canvas.getContext('2d');
-                        context.drawImage(qrCanvas, 0, 0);
-                        const logoSize = Math.min(qrCanvas.width, qrCanvas.height) * 0.2;
-                        const logoX = (qrCanvas.width - logoSize) / 2;
-                        const logoY = (qrCanvas.height - logoSize) / 2;
-                        context.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-                        const logoImageData = canvas.toDataURL(imageType).split(',')[1];
-                        zip.file(`qrcode_with_logo.${fileExtension}`, logoImageData, { base64: true });
-                    };
+                    const image = qrCanvas.toDataURL(imageType);
+                    const imageData = image.split(',')[1];
+                    zip.file(`qrcode.${fileExtension}`, imageData, {
+                        base64: true,
+                    });
+
+                    if (this.logo) {
+                        const logoImage = new Image();
+                        logoImage.src = URL.createObjectURL(this.logo);
+                        logoImage.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = qrCanvas.width;
+                            canvas.height = qrCanvas.height;
+                            const context = canvas.getContext('2d');
+                            context.drawImage(qrCanvas, 0, 0);
+                            const logoSize =
+                                Math.min(qrCanvas.width, qrCanvas.height) * 0.2;
+                            const logoX = (qrCanvas.width - logoSize) / 2;
+                            const logoY = (qrCanvas.height - logoSize) / 2;
+                            context.drawImage(
+                                logoImage,
+                                logoX,
+                                logoY,
+                                logoSize,
+                                logoSize,
+                            );
+                            const logoImageData = canvas
+                                .toDataURL(imageType)
+                                .split(',')[1];
+                            zip.file(
+                                `qrcode_with_logo.${fileExtension}`,
+                                logoImageData,
+                                { base64: true },
+                            );
+                        };
+                    }
                 }
-            }
-        });
-    
+            });
+
             zip.generateAsync({ type: 'blob' }).then((content) => {
                 const link = document.createElement('a');
                 link.download = `${filename}.zip`;
@@ -111,5 +135,5 @@ class QRCodeGenerator {
                 link.click();
             });
         }
-    }    
+    }
 }
