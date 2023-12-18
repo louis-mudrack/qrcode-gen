@@ -78,15 +78,9 @@ class QRCodeGenerator {
                     let imageType = 'image/png';
                     let fileExtension = 'png';
 
-                    if (fileType === 'pdf') {
-                        imageType = 'application/pdf';
-                        fileExtension = 'pdf';
-                    } else if (fileType === 'jpg') {
+                    if (fileType === 'jpg') {
                         imageType = 'image/jpeg';
                         fileExtension = 'jpg';
-                    } else if (fileType === 'svg') {
-                        imageType = 'image/svg+xml';
-                        fileExtension = 'svg';
                     }
 
                     const image = qrCanvas.toDataURL(imageType);
