@@ -9,46 +9,102 @@
     <body>
         <header>
             <h1>QR Code Generator</h1>
-            <span>Like the extension? <a href="#" target='_blank' title="Rate the extension!">Rate</a> it here!</span>
+            <span
+                >Like the extension?
+                <a href="#" target="_blank" title="Rate the extension!">Rate</a>
+                it here!</span
+            >
         </header>
         <main>
             <div id="qrcode"></div>
             <div class="settings">
+                <label for="file-type">File Formats:</label>
+                <div>
+                    <input
+                        type="checkbox"
+                        id="png"
+                        class="file-format-checkbox"
+                        value="png"
+                        checked
+                    />
+                    <label for="png">PNG</label>
+                </div>
+                <div>
+                    <input
+                        type="checkbox"
+                        id="jpg"
+                        class="file-format-checkbox"
+                        value="jpg"
+                    />
+                    <label for="jpg">JPG</label>
+                </div>
+
                 <div class="color">
                     <div class="left">
                         <label for="main">Main Color:</label>
-                        <input class="btn no-padding" type="color" id="main" value="#000000" />
+                        <input
+                            class="btn no-padding"
+                            type="color"
+                            id="mainColor"
+                            value="#000000"
+                        />
                     </div>
                     <div class="right">
                         <label for="background">Background Color:</label>
-                        <input class="btn no-padding" type="color" id="background" value="#ffffff" />
+                        <input
+                            class="btn no-padding"
+                            type="color"
+                            id="backgroundColor"
+                            value="#ffffff"
+                        />
                     </div>
                 </div>
                 <label for="width">Width:</label>
-                <input class="btn" type="number" id="width" value="128" />
+                <input class="btn" type="number" id="width" value="1000" />
                 <label for="height">Height:</label>
-                <input class="btn" type="number" id="height" value="128" />
+                <input class="btn" type="number" id="height" value="1000" />
+            </div>
+            <div>
+                <label for="logo">Logo:</label>
+                <input type="file" id="logo" accept="image/*" />
             </div>
             <div class="buttons">
-                <button class="btn" id="generate">Generate QR Code</button>
+                <button class="btn" id="generate">Regenerate QR Code</button>
                 <button class="btn" id="download">Download QR Code</button>
             </div>
         </main>
         <footer>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
-                <path fill="#5058f2" fill-opacity="1" d="M0,96L48,90.7C96,85,192,75,288,74.7C384,75,480,85,576,80C672,75,768,53,864,42.7C960,32,1056,32,1152,37.3C1248,43,1344,53,1392,58.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-              </svg>
+                <path
+                    fill="#5058f2"
+                    fill-opacity="1"
+                    d="M0,96L48,90.7C96,85,192,75,288,74.7C384,75,480,85,576,80C672,75,768,53,864,42.7C960,32,1056,32,1152,37.3C1248,43,1344,53,1392,58.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+                ></path>
+            </svg>
             <div class="left footer-text">
                 <p>This project is <b>open source</b>!</p>
-                <p>Feel free to contribute on <a href="https://github.com/louis-mudrack/qrcode-gen" target="_blank" title="GitHub of Louis Mudrack">GitHub</a>.</p>
+                <p>
+                    Feel free to contribute on
+                    <a
+                        href="https://github.com/louis-mudrack/qrcode-gen"
+                        target="_blank"
+                        title="GitHub of Louis Mudrack"
+                        >GitHub</a
+                    >.
+                </p>
             </div>
             <div class="right links">
-                <a href="https://github.com/louis-mudrack/qrcode-gen" target="_blank" title="GitHub of Louis Mudrack">
-                    <img src="images/github-mark-white.png" alt="GitHub Logo">
+                <a
+                    href="https://github.com/louis-mudrack/qrcode-gen"
+                    target="_blank"
+                    title="GitHub of Louis Mudrack"
+                >
+                    <img src="images/github-mark-white.png" alt="GitHub Logo" />
                 </a>
             </div>
         </footer>
         <script src="js/library/qrcode.min.js"></script>
+        <script src="js/library/jszip.min.js"></script>
         <script src="js/qrcodegenerator.js"></script>
         <script src="js/script.js"></script>
     </body>
