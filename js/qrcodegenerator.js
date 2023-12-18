@@ -3,8 +3,9 @@ class QRCodeGenerator {
         this.containerElement = containerElement;
         this.mainColor = '#000000';
         this.backgroundColor = '#ffffff';
-        this.standardWidth = 128;
-        this.standardHeight = 128;
+        this.standardWidth = 1000;
+        this.standardHeight = 1000;
+        this.logo = null;
         this.qrCode = null;
     }
 
@@ -19,6 +20,25 @@ class QRCodeGenerator {
             colorDark: this.mainColor,
             colorLight: this.backgroundColor,
         });
+        if (this.logo) {
+            const qrCanvas = this.containerElement.querySelector('canvas');
+            const qrContext = qrCanvas.getContext('2d');
+            const logoImage = new Image();
+            logoImage.src = URL.createObjectURL(this.logo);
+            logoImage.onload = () => {
+                const logoSize = Math.min(this.standardWidth, this.standardHeight) * 0.2;
+                const logoX = (this.standardWidth - logoSize) / 2;
+                const logoY = (this.standardHeight - logoSize) / 2;
+                qrContext.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+            };
+        }
+    }
+
+    updateLogo(logo) {
+        this.logo = logo;
+        if (this.qrCode) {
+            this.generate(this.qrCode._oDrawing._htOption.text);
+        }
     }
 
     updateColors(mainColor, backgroundColor) {
@@ -60,13 +80,29 @@ class QRCodeGenerator {
                         fileExtension = 'svg';
                     }
     
-                    const image = qrCanvas
-                        .toDataURL(imageType)
-                        .replace(imageType, 'image/octet-stream');
-                    const imageData = image.split(',')[1];
-                    zip.file(`qrcode.${fileExtension}`, imageData, { base64: true });
+                    const image = qrCanvas.toDataURL(imageType);
+                const imageData = image.split(',')[1];
+                zip.file(`qrcode.${fileExtension}`, imageData, { base64: true });
+
+                if (this.logo) {
+                    const logoImage = new Image();
+                    logoImage.src = URL.createObjectURL(this.logo);
+                    logoImage.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = qrCanvas.width;
+                        canvas.height = qrCanvas.height;
+                        const context = canvas.getContext('2d');
+                        context.drawImage(qrCanvas, 0, 0);
+                        const logoSize = Math.min(qrCanvas.width, qrCanvas.height) * 0.2;
+                        const logoX = (qrCanvas.width - logoSize) / 2;
+                        const logoY = (qrCanvas.height - logoSize) / 2;
+                        context.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+                        const logoImageData = canvas.toDataURL(imageType).split(',')[1];
+                        zip.file(`qrcode_with_logo.${fileExtension}`, logoImageData, { base64: true });
+                    };
                 }
-            });
+            }
+        });
     
             zip.generateAsync({ type: 'blob' }).then((content) => {
                 const link = document.createElement('a');
