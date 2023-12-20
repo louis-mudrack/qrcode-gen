@@ -9,10 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function initializeQRCode(qrCodeGenerator) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs.length === 0) {
-            console.error('No active tab found.');
-            return;
-        }
         const activeTab = tabs[0];
         qrCodeGenerator.generate(activeTab.url);
     });
@@ -23,16 +19,20 @@ function setupGenerateButton(qrCodeGenerator) {
     generateButton.addEventListener('click', function () {
         const logoInput = document.getElementById('logo');
         const logo = logoInput.files[0];
-        qrCodeGenerator.updateConfig({ logo });
 
         const mainColor = document.getElementById('mainColor').value;
         const backgroundColor =
             document.getElementById('backgroundColor').value;
-        qrCodeGenerator.updateConfig({ mainColor, backgroundColor });
 
         const width = parseInt(document.getElementById('width').value, 10);
         const height = parseInt(document.getElementById('height').value, 10);
-        qrCodeGenerator.updateConfig({ width, height });
+        qrCodeGenerator.updateConfig({
+            mainColor,
+            backgroundColor,
+            width,
+            height,
+            logo,
+        });
     });
 }
 
