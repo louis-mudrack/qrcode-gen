@@ -69,60 +69,118 @@ class QRCodeGenerator {
         if (!svgElement) return;
     
         const fileFormats = this.getFileFormats();
-        
+    
         if (fileFormats.length > 1) {
             const zip = new JSZip();
             const promises = [];
-            
+    
+            // Add PDF to ZIP
+            promises.push(
+                this.addPDFToZip(svgElement, `${filename}.pdf`, zip)
+            );
+    
+            // Add other file formats to ZIP
             fileFormats.forEach(({ type, extension }) => {
                 if (type === 'image/svg+xml') {
-                    const svgData = new XMLSerializer().serializeToString(
-                        svgElement,
-                        );
+                    const svgData = new XMLSerializer().serializeToString(svgElement);
                     zip.file(`${filename}.${extension}`, svgData);
                 } else if (type === 'application/pdf') {
-                    this.downloadPDF(svgElement, type, `${filename}.${extension}`);
+                    // Already added to promises
                 } else {
                     promises.push(
-                        this.addRasterImageToZip(
-                            svgElement,
-                            type,
-                            `${filename}.${extension}`,
-                            zip,
-                            ),
+                        this.addRasterImageToZip(svgElement, type, `${filename}.${extension}`, zip),
                     );
                 }
             });
-            
-            Promise.all(promises)
-            .then(() => {
+    
+            Promise.all(promises).then(() => {
                 zip.generateAsync({ type: 'blob' }).then((content) => {
-                    this.triggerDownload(`${filename}.zip`, content);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(content);
+                    downloadLink.download = `${filename}.zip`;
+                    downloadLink.click();
                 });
-            })
-                .catch((error) => {
-                    console.error('Error adding images to ZIP:', error);
-                });
-            } else {
-                const { type, extension } = fileFormats[0];
-                
-                    const isPDFSelected = fileFormats.some(format => format.extension === 'pdf');
-                
-                    if (isPDFSelected) {
-                        this.downloadPDF(svgElement, type, `${filename}.${extension}`);
-                        return;
-                    }
-                if (type === 'image/svg+xml') {
+            }).catch((error) => {
+                console.error('Error adding files to ZIP:', error);
+            });
+        } else if (fileFormats.length === 1) {
+            const { type, extension } = fileFormats[0];
+            if (type === 'application/pdf') {
+                this.downloadPDF(svgElement, type, `${filename}.${extension}`);
+            } else if (type === 'image/svg+xml') {
                 this.downloadSVG(svgElement, `${filename}.${extension}`);
             } else {
-                this.downloadRasterImage(
-                    svgElement,
-                    type,
-                    `${filename}.${extension}`,
-                );
+                this.downloadRasterImage(svgElement, type, `${filename}.${extension}`);
             }
         }
     }
+    
+
+    addPDFToZip(svgElement, filename, zip) {
+        return new Promise((resolve, reject) => {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [this.config.width, this.config.height]
+            });
+    
+            const canvas = document.createElement('canvas');
+            canvas.width = this.config.width;
+            canvas.height = this.config.height;
+            const ctx = canvas.getContext('2d');
+            const DOMURL = window.URL || window.webkitURL || window;
+            const img = new Image();
+            const svgBlob = new Blob(
+                [new XMLSerializer().serializeToString(svgElement)],
+                { type: 'image/svg+xml' }
+            );
+            const url = DOMURL.createObjectURL(svgBlob);
+    
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                DOMURL.revokeObjectURL(url);
+    
+                const addLogoAndGeneratePDF = () => {
+                    if (this.config.logo) {
+                        const logoImage = new Image();
+                        logoImage.onload = () => {
+                            const logoSize = Math.min(this.config.width, this.config.height) * 0.3;
+                            const logoX = (this.config.width - logoSize) / 2;
+                            const logoY = (this.config.height - logoSize) / 2;
+                            ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+                            generatePDF();
+                        };
+                        logoImage.onerror = () => {
+                            reject(new Error('Failed to load the logo image for PDF creation.'));
+                        };
+                        logoImage.src = URL.createObjectURL(this.config.logo);
+                    } else {
+                        generatePDF();
+                    }
+                };
+    
+                const generatePDF = () => {
+                    canvas.toBlob((blob) => {
+                        pdf.addImage(canvas, 'SVG', 0, 0, this.config.width, this.config.height);
+                        const pdfBlob = pdf.output('blob');
+                        zip.file(filename, pdfBlob);
+                        resolve();
+                    }, 'image/svg+xml');
+                };
+    
+                addLogoAndGeneratePDF();
+            };
+    
+            img.onerror = () => {
+                reject(new Error('Failed to load the image for PDF creation.'));
+                DOMURL.revokeObjectURL(url);
+            };
+    
+            img.src = url;
+        });
+    }
+    
 
     downloadPDF(svgElement, type, filename) {
         const { jsPDF } = window.jspdf;
