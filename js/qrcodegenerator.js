@@ -35,8 +35,9 @@ class QRCodeGenerator {
     addLogo() {
         if (!this.config.logo) return;
 
-        const logoSize = this.config.size * 0.3;
-        const logoPosition = (this.config.size - logoSize) / 2;
+        const logoSize = "30%";
+        const logoPosition = 17.5
+        ;
         const logoReader = new FileReader();
 
         logoReader.onload = (e) => {
