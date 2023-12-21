@@ -1,22 +1,23 @@
 class QRCodeGenerator {
+    // Constructor initializes the QR code generator with a target container element.
     constructor(containerElement) {
         this.containerElement = containerElement;
         this.config = {
             mainColor: '#000000',
             backgroundColor: '#ffffff',
-            width: 1000,
-            height: 1000,
+            size: 1000,
             logo: null,
             qrCode: null,
         };
     }
 
+    // Generates a QR code with the provided URL and updates the container element.
     generate(url) {
         this.clearQRCode();
         this.config.qrCode = new QRCode(this.containerElement, {
             text: url,
-            width: this.config.width,
-            height: this.config.height,
+            width: this.config.size,
+            height: this.config.size,
             colorDark: this.config.mainColor,
             colorLight: this.config.backgroundColor,
             useSVG: true,
@@ -25,34 +26,40 @@ class QRCodeGenerator {
         this.addLogo();
     }
 
+    // Clears the QR code from the container element.
     clearQRCode() {
         this.containerElement.innerHTML = '';
     }
 
+    // Adds a logo to the center of the QR code if a logo is configured.
     addLogo() {
         if (!this.config.logo) return;
 
+        const logoSize = this.config.size * 0.3;
+        const logoPosition = (this.config.size - logoSize) / 2;
         const logoReader = new FileReader();
+
         logoReader.onload = (e) => {
             const logoDataURL = e.target.result;
             const image = document.createElementNS(
                 'http://www.w3.org/2000/svg',
                 'image',
             );
-
             image.setAttributeNS(null, 'href', logoDataURL);
-            image.setAttributeNS(null, 'width', '30%');
-            image.setAttributeNS(null, 'height', '30%');
-            image.setAttributeNS(null, 'x', 15.5);
-            image.setAttributeNS(null, 'y', 15.5);
+            image.setAttributeNS(null, 'width', logoSize);
+            image.setAttributeNS(null, 'height', logoSize);
+            image.setAttributeNS(null, 'x', logoPosition);
+            image.setAttributeNS(null, 'y', logoPosition);
             image.setAttributeNS(null, 'preserveAspectRatio', 'xMidYMid meet');
             image.setAttributeNS(null, 'visibility', 'visible');
 
             this.containerElement.querySelector('svg').appendChild(image);
         };
+
         logoReader.readAsDataURL(this.config.logo);
     }
 
+    // Updates the configuration of the QR code generator and regenerates the QR code if necessary.
     updateConfig(newConfig) {
         Object.assign(this.config, newConfig);
         if (this.config.qrCode) {
@@ -60,245 +67,157 @@ class QRCodeGenerator {
         }
     }
 
+    // Retrieves the current QR code text.
     getCurrentQRText() {
         return this.config.qrCode?._oDrawing?._htOption?.text || '';
     }
 
+    // Initiates the download process for the QR code in various formats.
     download(filename) {
         const svgElement = this.containerElement.querySelector('svg');
         if (!svgElement) return;
-    
-        const fileFormats = this.getFileFormats();
-    
+
+        const fileFormats = this.getSelectedFileFormats();
+
         if (fileFormats.length > 1) {
-            const zip = new JSZip();
-            const promises = [];
-    
-            // Add PDF to ZIP
-            promises.push(
-                this.addPDFToZip(svgElement, `${filename}.pdf`, zip)
-            );
-    
-            // Add other file formats to ZIP
-            fileFormats.forEach(({ type, extension }) => {
-                if (type === 'image/svg+xml') {
-                    const svgData = new XMLSerializer().serializeToString(svgElement);
-                    zip.file(`${filename}.${extension}`, svgData);
-                } else if (type === 'application/pdf') {
-                    // Already added to promises
-                } else {
-                    promises.push(
-                        this.addRasterImageToZip(svgElement, type, `${filename}.${extension}`, zip),
-                    );
-                }
-            });
-    
-            Promise.all(promises).then(() => {
-                zip.generateAsync({ type: 'blob' }).then((content) => {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = URL.createObjectURL(content);
-                    downloadLink.download = `${filename}.zip`;
-                    downloadLink.click();
-                });
-            }).catch((error) => {
-                console.error('Error adding files to ZIP:', error);
-            });
+            this.downloadMultipleFormats(svgElement, filename, fileFormats);
         } else if (fileFormats.length === 1) {
-            const { type, extension } = fileFormats[0];
-            if (type === 'application/pdf') {
-                this.downloadPDF(svgElement, type, `${filename}.${extension}`);
-            } else if (type === 'image/svg+xml') {
-                this.downloadSVG(svgElement, `${filename}.${extension}`);
-            } else {
-                this.downloadRasterImage(svgElement, type, `${filename}.${extension}`);
-            }
+            this.downloadSingleFormat(svgElement, filename, fileFormats[0]);
         }
     }
-    
 
+    // Downloads multiple file formats by creating a ZIP file.
+    downloadMultipleFormats(svgElement, filename, fileFormats) {
+        const zip = new JSZip();
+        const promises = fileFormats.map((format) =>
+            this.addFileToZip(
+                svgElement,
+                format,
+                `${filename}.${format.extension}`,
+                zip,
+            ),
+        );
+
+        Promise.all(promises)
+            .then(() => {
+                zip.generateAsync({ type: 'blob' }).then((content) => {
+                    this.triggerDownload(`${filename}.zip`, content);
+                });
+            })
+            .catch((error) => {
+                console.error('Error adding files to ZIP:', error);
+            });
+    }
+
+    // Downloads a single file format.
+    downloadSingleFormat(svgElement, filename, format) {
+        if (format.type === 'application/pdf') {
+            this.downloadPDF(svgElement, filename);
+        } else if (format.type === 'image/svg+xml') {
+            this.downloadSVG(svgElement, filename);
+        } else {
+            this.downloadRasterImage(svgElement, format.type, filename);
+        }
+    }
+
+    // Adds a file to the ZIP archive.
+    addFileToZip(svgElement, format, filename, zip) {
+        if (format.type === 'image/svg+xml') {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            zip.file(filename, svgData);
+            return Promise.resolve();
+        } else if (format.type === 'application/pdf') {
+            return this.addPDFToZip(svgElement, filename, zip);
+        } else {
+            return this.addRasterImageToZip(
+                svgElement,
+                format.type,
+                filename,
+                zip,
+            );
+        }
+    }
+
+    // Adds a PDF file to the ZIP archive.
     addPDFToZip(svgElement, filename, zip) {
         return new Promise((resolve, reject) => {
-            const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({
                 orientation: 'landscape',
                 unit: 'px',
-                format: [this.config.width, this.config.height]
+                format: [this.config.size, this.config.size],
             });
-    
-            const canvas = document.createElement('canvas');
-            canvas.width = this.config.width;
-            canvas.height = this.config.height;
-            const ctx = canvas.getContext('2d');
-            const DOMURL = window.URL || window.webkitURL || window;
-            const img = new Image();
-            const svgBlob = new Blob(
-                [new XMLSerializer().serializeToString(svgElement)],
-                { type: 'image/svg+xml' }
-            );
-            const url = DOMURL.createObjectURL(svgBlob);
-    
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                DOMURL.revokeObjectURL(url);
-    
-                const addLogoAndGeneratePDF = () => {
-                    if (this.config.logo) {
-                        const logoImage = new Image();
-                        logoImage.onload = () => {
-                            const logoSize = Math.min(this.config.width, this.config.height) * 0.3;
-                            const logoX = (this.config.width - logoSize) / 2;
-                            const logoY = (this.config.height - logoSize) / 2;
-                            ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-                            generatePDF();
-                        };
-                        logoImage.onerror = () => {
-                            reject(new Error('Failed to load the logo image for PDF creation.'));
-                        };
-                        logoImage.src = URL.createObjectURL(this.config.logo);
-                    } else {
-                        generatePDF();
-                    }
-                };
-    
-                const generatePDF = () => {
-                    canvas.toBlob((blob) => {
-                        pdf.addImage(canvas, 'SVG', 0, 0, this.config.width, this.config.height);
-                        const pdfBlob = pdf.output('blob');
+
+            this.svgElementToCanvas(
+                svgElement,
+                this.config.size,
+                this.config.size,
+            )
+                .then((canvas) => {
+                    pdf.addImage(
+                        canvas.toDataURL('image/png'),
+                        'PNG',
+                        0,
+                        0,
+                        this.config.size,
+                        this.config.size,
+                    );
+                    pdf.output('blob').then((pdfBlob) => {
                         zip.file(filename, pdfBlob);
                         resolve();
-                    }, 'image/svg+xml');
-                };
-    
-                addLogoAndGeneratePDF();
-            };
-    
-            img.onerror = () => {
-                reject(new Error('Failed to load the image for PDF creation.'));
-                DOMURL.revokeObjectURL(url);
-            };
-    
-            img.src = url;
+                    });
+                })
+                .catch((error) => {
+                    reject(error);
+                });
         });
     }
-    
 
-    downloadPDF(svgElement, type, filename) {
-        const { jsPDF } = window.jspdf;
+    // Adds a raster image file (PNG, JPG, etc.) to the ZIP archive.
+    addRasterImageToZip(svgElement, type, filename, zip) {
+        return new Promise((resolve, reject) => {
+            this.svgElementToCanvas(
+                svgElement,
+                this.config.size,
+                this.config.size,
+            )
+                .then((canvas) => {
+                    canvas.toBlob((blob) => {
+                        zip.file(filename, blob);
+                        resolve();
+                    }, type);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        });
+    }
+
+    // Downloads the QR code as a PDF file.
+    downloadPDF(svgElement, filename) {
         const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'px',
-            format: [this.config.width, this.config.height]
+            format: [this.config.size, this.config.size],
         });
-    
-        // Convert SVG element to a data URL
-        const canvas = document.createElement('canvas');
-        canvas.width = this.config.width;
-        canvas.height = this.config.height;
-        const ctx = canvas.getContext('2d');
-        const DOMURL = window.URL || window.webkitURL || window;
-        const img = new Image();
-        const svgBlob = new Blob(
-            [new XMLSerializer().serializeToString(svgElement)],
-            { type: 'image/svg+xml' },
-        );
-        const url = DOMURL.createObjectURL(svgBlob);
 
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0);
-            DOMURL.revokeObjectURL(url);
-            
-            // If there is a logo, draw it onto the PDF
-            if (this.config.logo) {
-                const logoImage = new Image();
-                logoImage.onload = () => {
-                    const logoSize =
-                    Math.min(this.config.width, this.config.height) *
-                    0.3;
-                    const logoX = (this.config.width - logoSize) / 2;
-                    const logoY = (this.config.height - logoSize) / 2;
-                    ctx.drawImage(
-                        logoImage,
-                        logoX,
-                        logoY,
-                        logoSize,
-                        logoSize,
-                        );
-                    };
-                    canvas.toBlob((blob) => {
-                        pdf.addImage(canvas, 'SVG', 0, 0, this.config.width, this.config.height);
-                        pdf.save(filename);
-                        URL.revokeObjectURL(url);
-                    }, type);
-                } else {
-                    canvas.toBlob((blob) => {
-                    pdf.addImage(canvas, 'SVG', 0, 0, this.config.width, this.config.height);
-                    pdf.save(filename);
-                    URL.revokeObjectURL(url);
-                }, type);
-            }
-        };
-        img.onerror = () => {
-            console.error('Failed to load the image for PDF creation.');
-            URL.revokeObjectURL(url);
-        };
-        img.src = url;
-    }
-    
-
-    addRasterImageToZip(svgElement, type, filename, zip) {
-        return new Promise((resolve, reject) => {
-            const canvas = document.createElement('canvas');
-            canvas.width = this.config.width;
-            canvas.height = this.config.height;
-            const ctx = canvas.getContext('2d');
-            const DOMURL = window.URL || window.webkitURL || window;
-            const img = new Image();
-            const svgBlob = new Blob(
-                [new XMLSerializer().serializeToString(svgElement)],
-                { type: 'image/svg+xml' },
+        this.svgElementToCanvas(
+            svgElement,
+            this.config.size,
+            this.config.size,
+        ).then((canvas) => {
+            pdf.addImage(
+                canvas.toDataURL('image/png'),
+                'PNG',
+                0,
+                0,
+                this.config.size,
+                this.config.size,
             );
-            const url = DOMURL.createObjectURL(svgBlob);
-
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                DOMURL.revokeObjectURL(url);
-
-                if (this.config.logo) {
-                    const logoImage = new Image();
-                    logoImage.onload = () => {
-                        const logoSize =
-                            Math.min(this.config.width, this.config.height) *
-                            0.3;
-                        const logoX = (this.config.width - logoSize) / 2;
-                        const logoY = (this.config.height - logoSize) / 2;
-                        ctx.drawImage(
-                            logoImage,
-                            logoX,
-                            logoY,
-                            logoSize,
-                            logoSize,
-                        );
-                    };
-                    canvas.toBlob((blob) => {
-                        zip.file(filename, blob);
-                        resolve();
-                    }, type);
-                } else {
-                    canvas.toBlob((blob) => {
-                        zip.file(filename, blob);
-                        resolve();
-                    }, type);
-                }
-                img.onerror = () => {
-                    reject(
-                        new Error('Failed to load the image onto the canvas.'),
-                    );
-                };
-            };
-            img.src = url;
+            pdf.save(filename);
         });
     }
 
+    // Downloads the QR code as an SVG file.
     downloadSVG(svgElement, filename) {
         const serializer = new XMLSerializer();
         const svgBlob = new Blob([serializer.serializeToString(svgElement)], {
@@ -307,55 +226,31 @@ class QRCodeGenerator {
         this.triggerDownload(filename, svgBlob);
     }
 
+    // Downloads the QR code as a raster image (PNG, JPG, etc.).
     downloadRasterImage(svgElement, type, filename) {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.config.width;
-        canvas.height = this.config.height;
-        const ctx = canvas.getContext('2d');
-        const DOMURL = window.URL || window.webkitURL || window;
-        const img = new Image();
-        const svgBlob = new Blob(
-            [new XMLSerializer().serializeToString(svgElement)],
-            { type: 'image/svg+xml' },
-        );
-        const url = DOMURL.createObjectURL(svgBlob);
-
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0);
-            DOMURL.revokeObjectURL(url);
-
-            if (this.config.logo) {
-                const logoImage = new Image();
-                logoImage.onload = () => {
-                    const logoSize =
-                        Math.min(this.config.width, this.config.height) * 0.3;
-                    const logoX = (this.config.width - logoSize) / 2;
-                    const logoY = (this.config.height - logoSize) / 2;
-                    ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-                };
-
-                canvas.toBlob((blob) => {
-                    this.triggerDownload(filename, blob);
-                }, type);
-                logoImage.src = URL.createObjectURL(this.config.logo);
-            } else {
-                canvas.toBlob((blob) => {
-                    this.triggerDownload(filename, blob);
-                }, type);
-            }
-        };
-        img.src = url;
+        this.svgElementToCanvas(
+            svgElement,
+            this.config.size,
+            this.config.size,
+        ).then((canvas) => {
+            canvas.toBlob((blob) => {
+                this.triggerDownload(filename, blob);
+            }, type);
+        });
     }
 
-    getFileFormats() {
-        const checkboxElements = document.querySelectorAll('.file-format-checkbox');
+    // Retrieves the selected file formats from the UI.
+    getSelectedFileFormats() {
+        const checkboxElements = document.querySelectorAll(
+            '.file-format-checkbox',
+        );
         return Array.from(checkboxElements)
             .filter((checkbox) => checkbox.checked)
             .map((checkbox) => {
                 const fileType = checkbox.value;
                 let type;
                 let extension;
-    
+
                 switch (fileType) {
                     case 'jpg':
                         type = 'image/jpeg';
@@ -376,12 +271,43 @@ class QRCodeGenerator {
                     default:
                         throw new Error('Unsupported file type selected.');
                 }
-    
+
                 return { type, extension };
             });
     }
-    
 
+    // Helper method to convert an SVG element to a canvas
+    svgElementToCanvas(svgElement, width, height) {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            const data = new XMLSerializer().serializeToString(svgElement);
+            const DOMURL = window.URL || window.webkitURL || window;
+            const img = new Image();
+
+            const svgBlob = new Blob([data], {
+                type: 'image/svg+xml;charset=utf-8',
+            });
+            const url = DOMURL.createObjectURL(svgBlob);
+
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                DOMURL.revokeObjectURL(url);
+                resolve(canvas);
+            };
+
+            img.onerror = (e) => {
+                reject(new Error('Error loading SVG'));
+                DOMURL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+        });
+    }
+
+    // Triggers the download of a file with the given filename and content.
     triggerDownload(filename, content) {
         const link = document.createElement('a');
         link.download = filename;
