@@ -141,6 +141,7 @@ class QRCodeGenerator {
     // Adds a PDF file to the ZIP archive.
     addPDFToZip(svgElement, filename, zip) {
         return new Promise((resolve, reject) => {
+            const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({
                 orientation: 'landscape',
                 unit: 'px',
@@ -161,10 +162,9 @@ class QRCodeGenerator {
                         this.config.size,
                         this.config.size,
                     );
-                    pdf.output('blob').then((pdfBlob) => {
-                        zip.file(filename, pdfBlob);
-                        resolve();
-                    });
+                    const pdfBlob = pdf.output('blob');
+                    zip.file(filename, pdfBlob);
+                    resolve();
                 })
                 .catch((error) => {
                     reject(error);
@@ -194,6 +194,7 @@ class QRCodeGenerator {
 
     // Downloads the QR code as a PDF file.
     downloadPDF(svgElement, filename) {
+        const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'px',
