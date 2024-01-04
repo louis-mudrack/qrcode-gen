@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Code Generator</title>
     <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
     <!-- Header Section -->
     <header>
@@ -20,6 +22,11 @@
         </svg>
         <!-- Settings Section -->
         <div class="settings">
+            <!-- URL Input -->
+            <div class="url-input">
+                <label for="url">Enter URL:</label>
+                <input type="text" id="url" placeholder="https://example.com" />
+            </div>
             <!-- File Format Selection -->
             <div class="formats">
                 <label for="file-type">File Formats:</label>
@@ -94,4 +101,5 @@
     <!-- Main Script -->
     <script src="js/script.js"></script>
 </body>
+
 </html>
